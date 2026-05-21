@@ -1,0 +1,146 @@
+name: Build
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+  schedule:
+    - cron: '0 2 * * 1'  # 每周一 UTC 02:00 自动触发
+  workflow_dispatch:
+    inputs:
+      upload_artifact:
+        description: 'Upload build artifact'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checksum
+        shell: pwsh
+        run: |
+          echo "SOURCE_NETCH_SHA256=$(.\sha256.ps1 .\Netch)" | Out-File -Append -Encoding UTF8 -FilePath $Env:GITHUB_ENV
+          echo "SOURCE_REDIRECTOR_SHA256=$(.\sha256.ps1 .\Redirector)" | Out-File -Append -Encoding UTF8 -FilePath $Env:GITHUB_ENV
+          echo "SOURCE_ROUTEHELPER_SHA256=$(.\sha256.ps1 .\RouteHelper)" | Out-File -Append -Encoding UTF8 -FilePath $Env:GITHUB_ENV
+
+      - name: Cache Netch
+        uses: actions/cache@v4
+        with:
+          key: Netch-${{ runner.os }}-Netch-v2-${{ env.SOURCE_NETCH_SHA256 }}
+          path: .\Netch\bin
+
+      - name: Cache Redirector
+        uses: actions/cache@v4
+        with:
+          key: Netch-${{ runner.os }}-Redirector-${{ env.SOURCE_REDIRECTOR_SHA256 }}
+          path: .\Redirector\bin
+
+      - name: Cache RouteHelper
+        uses: actions/cache@v4
+        with:
+          key: Netch-${{ runner.os }}-RouteHelper-${{ env.SOURCE_ROUTEHELPER_SHA256 }}
+          path: .\RouteHelper\bin
+
+      # 从各组件官方源头下载最新版，跳过 Other\build.ps1
+      - name: Download all components (latest)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "Other\release" | Out-Null
+          function Download($uri, $out) {
+            Write-Host "GET $uri"
+            Invoke-WebRequest -Uri $uri -OutFile $out
+          }
+          function LatestAsset($repo, $name) {
+            $rel = Invoke-RestMethod "https://api.github.com/repos/$repo/releases/latest"
+            Write-Host "$repo latest: $($rel.tag_name)"
+            return ($rel.assets | Where-Object { $_.name -eq $name } | Select-Object -First 1).browser_download_url
+          }
+
+          # xray-core
+          $url = LatestAsset "XTLS/Xray-core" "Xray-windows-64.zip"
+          Download $url "xray.zip"
+          7z e "xray.zip" "xray.exe" -o"Other\release" -y
+
+          # wintun.dll 随 Netch 官方 Release 一起提取，见下方
+
+          # tun2socks.bin は Netch 独自 DLL ビルド、官方 Release から取る（後で aiodns と一緒に抽出）
+          # xjasonlyu/tun2socks の exe は Netch では使われていないため不要
+
+          # ck-client (Cloak) - 文件名带版本号，用 like 匹配
+          $ckRel = Invoke-RestMethod "https://api.github.com/repos/cbeuw/Cloak/releases/latest"
+          Write-Host "cbeuw/Cloak latest: $($ckRel.tag_name)"
+          $ckAsset = $ckRel.assets | Where-Object { $_.name -like "ck-client-windows-amd64-*.exe" } | Select-Object -First 1
+          Download $ckAsset.browser_download_url "Other\release\ck-client.exe"
+
+          # v2ray-plugin - 文件名带版本号，用 like 匹配
+          $vpRel = Invoke-RestMethod "https://api.github.com/repos/teddysun/v2ray-plugin/releases/latest"
+          Write-Host "teddysun/v2ray-plugin latest: $($vpRel.tag_name)"
+          $vpAsset = $vpRel.assets | Where-Object { $_.name -like "v2ray-plugin-windows-amd64-*.tar.gz" } | Select-Object -First 1
+          Download $vpAsset.browser_download_url "v2ray-plugin.tar.gz"
+          7z e "v2ray-plugin.tar.gz" -o"v2ray-plugin-tmp" -y
+          7z e "v2ray-plugin-tmp\*.tar" -o"Other\release" -y
+          $vpExe = Get-ChildItem "Other\release\v2ray-plugin*.exe" | Select-Object -First 1
+          if ($vpExe) { Rename-Item $vpExe.FullName "v2ray-plugin.exe" -Force }
+
+          # shadowsocks-rust (sslocal → ss-local.exe)
+          $url = LatestAsset "shadowsocks/shadowsocks-rust" "shadowsocks-v*-x86_64-pc-windows-msvc.zip"
+          if (-not $url) {
+            $rel = Invoke-RestMethod "https://api.github.com/repos/shadowsocks/shadowsocks-rust/releases/latest"
+            $url = ($rel.assets | Where-Object { $_.name -like "*x86_64-pc-windows-msvc.zip" } | Select-Object -First 1).browser_download_url
+          }
+          Download $url "ss-rust.zip"
+          7z e "ss-rust.zip" "sslocal.exe" -o"Other\release" -y
+          Rename-Item "Other\release\sslocal.exe" "ss-local.exe" -ErrorAction SilentlyContinue
+
+          # tun2socks.bin 已在仓库 Storage/ 中，build.ps1 会自动复制，无需处理
+          # aiodns.bin 和 wintun.dll 需要从官方 Netch 1.9.7 取，版本必须配套
+          Download "https://github.com/netchx/netch/releases/download/1.9.7/Netch.7z" "Netch-official.7z"
+          7z e "Netch-official.7z" "aiodns.bin" -o"Other\release" -y -r
+          7z e "Netch-official.7z" "wintun.dll" -o"Other\release" -y -r
+          Remove-Item "Other\release\Netch.exe" -ErrorAction SilentlyContinue
+          Remove-Item "Other\release\v2ray-sn.exe" -ErrorAction SilentlyContinue
+          Remove-Item "Other\release\pcap2socks.exe" -ErrorAction SilentlyContinue
+
+          Write-Host "=== Other\release ==="
+          Get-ChildItem "Other\release" -Recurse | Select-Object FullName
+
+      - name: Pin global.json to .NET 6
+        shell: pwsh
+        run: |
+          '{"sdk":{"version":"6.0.425","rollForward":"latestMinor"}}' | Set-Content global.json
+
+      - name: Setup .NET 6
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-prerelease: true
+
+      - name: Build
+        shell: pwsh
+        run: |
+          .\build.ps1 -Configuration Release -OutputPath release
+
+      - name: Package
+        shell: pwsh
+        run: |
+          7z a -mx9 Netch-httpupgrade.7z .\release\*
+
+      - name: Upload Artifact
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.upload_artifact != 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Netch-httpupgrade-${{ github.sha }}
+          path: Netch-httpupgrade.7z
+          retention-days: 30
