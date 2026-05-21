@@ -1,5 +1,12 @@
-stun.qq.com
-stun.bige0.com
-stun.miwifi.com
-stun.syncthing.net
-stun.stunprotocol.org
+stun.ekiga.net
+stun.fwdnet.net
+stun.ideasip.com
+stun.iptel.org
+stun.rixtelecom.se
+stun.schlund.de
+stunserver.org
+stun.softjoys.com
+stun.voiparound.com
+stun.voipbuster.com
+stun.voipstunt.com
+stun.voxgratia.org
