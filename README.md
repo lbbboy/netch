@@ -43,7 +43,7 @@ A simple proxy client — forked from [netchx/netch](https://github.com/netchx/n
 
 ## 下载
 
-前往 [Actions](../../actions/workflows/build-httpupgrade.yml) 页面，点击最新一次成功的 workflow run，在底部 Artifacts 下载 `Netch-httpupgrade-xxx.zip`。
+前往 [Actions](../../actions/workflows/build.yml) 页面，点击最新一次成功的 workflow run，在底部 Artifacts 下载 `Netch-httpupgrade-xxx.zip`。
 
 ## 使用说明
 
