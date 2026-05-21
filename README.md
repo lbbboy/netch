@@ -5,7 +5,7 @@
 # Netch
 A simple proxy client — forked from [netchx/netch](https://github.com/netchx/netch)
 
-[![Build](https://github.com/lbbboy/netch/actions/workflows/build-httpupgrade.yml/badge.svg)](https://github.com/lbbboy/netch/actions/workflows/build-httpupgrade.yml)
+[![Build](https://github.com/lbbboy/netch/actions/workflows/build.yml/badge.svg)](https://github.com/lbbboy/netch/actions/workflows/build.yml)
 [![](https://img.shields.io/github/v/release/netchx/netch?style=flat-square&label=upstream)](https://github.com/netchx/netch/releases)
 
 </div>
