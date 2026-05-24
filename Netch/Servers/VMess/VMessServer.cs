@@ -122,6 +122,11 @@ public class VMessServer : Server
     ///     Reality SpiderX
     /// </summary>
     public string? SpiderX { get; set; }
+
+    /// <summary>
+    ///     xhttp Mode
+    /// </summary>
+    public string? XhttpMode { get; set; } = "auto";
 }
 
 public class VMessGlobal

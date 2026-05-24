@@ -56,7 +56,7 @@ public static class V2rayUtils
                 case "xhttp":
                     server.Path = Uri.UnescapeDataString(parameter.Get("path") ?? "/");
                     server.Host = Uri.UnescapeDataString(parameter.Get("host") ?? "");
-                    server.FakeType = parameter.Get("mode") ?? "auto";
+                    server.XhttpMode = parameter.Get("mode") ?? "auto";
                     break;
             }
 
@@ -143,8 +143,8 @@ public static class V2rayUtils
                 parameter.Add("path", Uri.EscapeDataString(server.Path.ValueOrDefault() ?? "/"));
                 if (!server.Host.IsNullOrWhiteSpace())
                     parameter.Add("host", Uri.EscapeDataString(server.Host!));
-                if (!server.FakeType.IsNullOrWhiteSpace() && server.FakeType != "auto")
-                    parameter.Add("mode", server.FakeType);
+                if (!server.XhttpMode.IsNullOrWhiteSpace() && server.XhttpMode != "auto")
+                    parameter.Add("mode", server.XhttpMode);
 
                 break;
         }

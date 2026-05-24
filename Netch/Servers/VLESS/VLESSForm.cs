@@ -29,6 +29,7 @@ internal class VLESSForm : ServerForm
             server.PacketEncoding);
 
         CreateComboBox("FakeType", "Fake Type", VLESSGlobal.FakeTypes, s => server.FakeType = s, server.FakeType);
+        CreateComboBox("XhttpMode", "xhttp Mode", new List<string> { "auto", "packet-up", "stream-up", "stream-down" }, s => server.XhttpMode = s, server.XhttpMode ?? "auto");
         CreateTextBox("Host", "Host", s => true, s => server.Host = s, server.Host);
         CreateTextBox("Path", "Path", s => true, s => server.Path = s, server.Path);
         CreateComboBox("QUICSecurity", "QUIC Security", VLESSGlobal.QUIC, s => server.QUICSecure = s, server.QUICSecure);

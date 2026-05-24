@@ -432,11 +432,15 @@ public static class V2rayConfigUtils
                 break;
             case "xhttp":
 
+                var xhttpMode = server.XhttpMode.ValueOrDefault();
+                if (string.IsNullOrWhiteSpace(xhttpMode) || xhttpMode == "none")
+                    xhttpMode = "auto";
+
                 streamSettings.xhttpSettings = new XhttpSettings
                 {
                     path = server.Path.ValueOrDefault() ?? "/",
                     host = server.Host.ValueOrDefault() ?? "",
-                    mode = server.FakeType.ValueOrDefault() ?? "auto"
+                    mode = xhttpMode
                 };
 
                 break;
